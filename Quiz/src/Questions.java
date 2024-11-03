@@ -1,128 +1,173 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-/**
- *
- * @author Admin
- */
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet; 
+import java.sql.Statement;
+import java.sql.PreparedStatement;
 
 public class Questions extends javax.swing.JFrame {
-
-    /**
-     * Creates new form Questions
-     */
+    public static String email; 
     private String[] questions = {
-            "What is the capital of France?",
-            "What is 2 + 2?",
-            "Who wrote 'Hamlet'?"};
-                int i =0;
-                JLabel q;
-                JButton next,ans1;
-    private String[] answers = {"1) Paris","2) .Ahemedabad","3) Kolkatta","4) TVM",
-                                               "1) 2",  "2) 4" , "3) 6", "4) 10",
-                                               "1) Akash", "2) Akash", "3) Adithya P", "4)Aadarsh"};
+        "What is the capital of France?",
+        "What is 2 + 2?",
+        "Who wrote 'Hamlet'?"
+    };
+    int i = 0, score = 0, s, n = 0;
+    JLabel q;
+    JButton next, ans1, ans2, ans3, ans4;
+
+    int[] topScore = new int[3];
+    String[][] answers = {
+        {"1) Paris", "2) Ahmedabad", "3) Kolkata", "4) TVM"},  
+        {"1) 2", "2) 4", "3) 6", "4) 10"},                     
+        {"1) Akash", "2) Akash", "3) Adithya P", "4) Aadarsh"}  
+    };
+    
+    private String[] correct_ans = {"1) Paris", "2) 4", "4) Aadarsh"};
+    JButton lastSelectedButton = null;  
+    String ans; 
+    
     public Questions() {
-        //=============================================Questions============================================
         initComponents();
+        
         q = new JLabel(questions[i]);
         q.setBounds(100, 100, 1000, 50);
         q.setFont(new Font("Arial", Font.BOLD, 40));
         jPanel3.add(q);
-        //================================================================================================
-        //==============================================NEXT BUTTON=======================================
-        next = new JButton("Next - >");
-        next.setBounds(900,500,120,50);
-        next.setBackground(new Color(51, 0, 153)); // Custom light blue color
+
+        next = new JButton("Next ->");
+        next.setBounds(900, 500, 120, 50);
+        next.setBackground(new Color(51, 0, 153));
         next.setForeground(new Color(255, 255, 255));
         next.setFont(new Font("Arial", Font.BOLD, 18));
         jPanel3.add(next);
-        //=================================================================================================
-       //================================================ANSWER BUTTONS======================================
-        ans1 = new JButton(answers[0]);
-        ans1.setBounds(100,200,350,75);
-        ans1.setBackground(new Color(51, 0, 153)); // Custom light blue color
-        ans1.setForeground(new Color(255, 255, 255));
-        ans1.setFont(new Font("Arial", Font.BOLD, 40));
-        jPanel3.add(ans1);
+
+        ans1 = new JButton(answers[i][0]);
+        ans2 = new JButton(answers[i][1]);
+        ans3 = new JButton(answers[i][2]);
+        ans4 = new JButton(answers[i][3]);
+
+        setupAnswerButton(ans1, 100, 200);
+        setupAnswerButton(ans2, 650, 200);
+        setupAnswerButton(ans3, 100, 375);
+        setupAnswerButton(ans4, 650, 375);
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        next.addActionListener(new ActionListener()
-        {
+        // Next button functionality to load the next question
+        next.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e)
-            {
-                if(i < questions.length - 1)
-                {
+            public void actionPerformed(ActionEvent e) {
+                if (i < questions.length - 1) {
+                    if (ans.equals(correct_ans[i])) {
+                        score = score+10;
+                    }
                     i++;
                     q.setText(questions[i]);
-                    ans1.setText(answers[i*4]);
+
+                    ans1.setText(answers[i][0]);
+                    ans2.setText(answers[i][1]);
+                    ans3.setText(answers[i][2]);
+                    ans4.setText(answers[i][3]);
+
+                    if (lastSelectedButton != null) {
+                        lastSelectedButton.setBackground(new Color(51, 0, 153));
+                    }
+                } else {
+                    if (ans.equals(correct_ans[i])) {
+                        score = score+10;
+                    }
+                    //JOptionPane.showMessageDialog(null, "Score: " + score);
+                    
+                    try {
+                        String url = "jdbc:mysql://localhost:3306/quiz";
+                        String user = "root";
+                        String password = "";
+
+                        Connection conn = DriverManager.getConnection(url, user, password);
+                        
+                        String sql2 = "SELECT score FROM welcome WHERE email = ?";
+                        PreparedStatement pstmt2 = conn.prepareStatement(sql2);
+                        pstmt2.setString(1, email);
+
+                        ResultSet rs2 = pstmt2.executeQuery();
+                        if (rs2.next()) {
+                            s = rs2.getInt("score");
+                        }
+
+                        String sql1 = "SELECT score FROM welcome ORDER BY score DESC LIMIT 3";
+                        PreparedStatement pstmt1 = conn.prepareStatement(sql1);
+                        ResultSet rs1 = pstmt1.executeQuery();
+                        int index = 0;
+                        while (rs1.next() && index < topScore.length) {
+                            topScore[index] = rs1.getInt("score");
+                            index++;
+                        }
+                        
+                        if (score > s) {
+                            String sql = "UPDATE welcome SET score = ? WHERE email = ?";
+                            PreparedStatement pstmt = conn.prepareStatement(sql);
+                            pstmt.setInt(1, score);
+                            pstmt.setString(2, email);
+                            pstmt.executeUpdate();
+                        }
+                        
+                        Leader obj = new Leader();
+                        obj.setVisible(true);
+                        dispose();
+                        conn.close();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         });
-        
-        
-//          ans1.addActionListener(new ActionListener()
-//        {
-//            @Override
-//            public void actionPerformed(ActionEvent e)
-//            {
-//                if(i < questions.length - 1)
-//                {
-//                    i++;
-//                    q.setText(answers[i*4]);
-//                }
-//            }
-//        });
-        
-        
-     
-         setVisible(true);
-        //Ques.setText("Hello");
     }
-    public void actionPerformed(ActionEvent e)
-    {};
 
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
+    private void setupAnswerButton(final JButton button, int x, int y) {
+        button.setBounds(x, y, 350, 75);
+        button.setBackground(new Color(51, 0, 153));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Arial", Font.BOLD, 40));
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ans = button.getText();
+
+                if (lastSelectedButton != null) {
+                    lastSelectedButton.setBackground(new Color(51, 0, 153));
+                }
+                button.setBackground(Color.BLUE);
+                lastSelectedButton = button;
+            }
+        });
+        addHoverEffect(button, new Color(51, 0, 153), Color.BLUE);
+        jPanel3.add(button);
+    }
+
+    private void addHoverEffect(final JButton button, final Color defaultColor, final Color hoverColor) {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (button != lastSelectedButton) {
+                    button.setBackground(defaultColor);
+                }
+            }
+        });
+    }
+
+    public void actionPerformed(ActionEvent e) {}
+
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-
         jPanel1 = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
-
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setBackground(new java.awt.Color(51, 0, 153));
-
         jPanel1.setBackground(new java.awt.Color(51, 0, 153));
-        jPanel1.setForeground(new java.awt.Color(240, 240, 240));
-        jPanel1.setToolTipText("");
         jPanel1.setPreferredSize(new java.awt.Dimension(1206, 720));
-
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
-
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
@@ -133,7 +178,6 @@ public class Questions extends javax.swing.JFrame {
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 638, Short.MAX_VALUE)
         );
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -150,7 +194,6 @@ public class Questions extends javax.swing.JFrame {
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(46, Short.MAX_VALUE))
         );
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -161,47 +204,18 @@ public class Questions extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 730, Short.MAX_VALUE)
         );
-
         pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Questions.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Questions.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Questions.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Questions.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Questions().setVisible(true);
-            }
-        });
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    public static void main(String args[]) {
+    java.awt.EventQueue.invokeLater(new Runnable() {
+        public void run() {
+            new Questions().setVisible(true);
+        }
+    });
+}
+
+
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
-    // End of variables declaration//GEN-END:variables
 }
